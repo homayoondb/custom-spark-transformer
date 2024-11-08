@@ -35,7 +35,11 @@ from xgboost.spark import SparkXGBRegressor
 # MAGIC
 # MAGIC ## Read the dataset
 # MAGIC
-# MAGIC You can download the dataset from here: [Kaggle Link](https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009/). Please consult the following [source](https://archive.ics.uci.edu/dataset/186/wine+quality) from [Cortez et al., 2009]. Place the downloaded `.csv` fiile into the `./data/` directory
+# MAGIC We'll load the Wine Quality Dataset directly from the UCI Machine Learning Repository:
+# MAGIC - Red wine data: https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv
+# MAGIC - White wine data: https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv
+# MAGIC 
+# MAGIC Reference: P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
 
 # COMMAND ----------
 
@@ -76,11 +80,6 @@ display(data_df)
 # COMMAND ----------
 
 train, test = data_df.randomSplit([0.8, 0.2], seed=42)
-
-# COMMAND ----------
-
-df = train
-df.columns
 
 # COMMAND ----------
 
