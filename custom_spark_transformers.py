@@ -43,12 +43,11 @@ from xgboost.spark import SparkXGBRegressor
 
 # COMMAND ----------
 
-import pandas as pd
-from pyspark.sql.functions import lit
-
-# URLs for the datasets
+# Load and prepare wine quality datasets
 red_wine_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
 white_wine_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
+
+# Load data and add color labels
 
 # Read the CSV files directly into pandas DataFrames
 red_wine_pd = pd.read_csv(red_wine_url, sep=';')
@@ -59,16 +58,17 @@ red_wine = spark.createDataFrame(red_wine_pd)
 white_wine = spark.createDataFrame(white_wine_pd)
 
 # Add a 'color' column to each DataFrame
-red_wine = red_wine.withColumn("color", lit("red"))
-white_wine = white_wine.withColumn("color", lit("white"))
+red_wine = red_wine.withColumn("color", F.lit("red"))
+white_wine = white_wine.withColumn("color", F.lit("white"))
 
 # Concatenate the dataframes
 data_df = white_wine.union(red_wine)
 
-# Make the quality into categories
+# Convert quality scores to binary categories (High/Low)
 data_df = data_df.withColumn("quality", F.when(data_df["quality"] > 7, "High").otherwise("Low"))
 
-display(data_df)
+# Display sample of prepared dataset
+display(data_df.limit(5))
 
 
 # COMMAND ----------
@@ -79,16 +79,27 @@ display(data_df)
 
 # COMMAND ----------
 
+# Split data into training (80%) and test (20%) sets
 train, test = data_df.randomSplit([0.8, 0.2], seed=42)
+print(f"Training set size: {train.count()}")
+print(f"Test set size: {test.count()}")
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC
-# MAGIC ## Build the model
-# MAGIC We want to build a ml model that predicts the 'alcohol' content in the wine. In partidcular, we would like to train a pipeline that performs three custom transformations on the dataset:
-# MAGIC
-# MAGIC 1. Custome transformer introduction: 
+# MAGIC ## Building the ML Pipeline
+# MAGIC 
+# MAGIC Our goal is to predict wine alcohol content using custom transformers in a Spark ML pipeline. We'll demonstrate three types of transformers:
+# MAGIC 
+# MAGIC 1. **CustomImputer**: Handles missing values in both numeric and categorical columns
+# MAGIC 2. **CustomAdder**: Combines acidity features into a new meaningful feature
+# MAGIC 3. **TargetEncoder**: Encodes categorical quality ratings using mean alcohol content
+# MAGIC 
+# MAGIC ### Why Custom Transformers?
+# MAGIC - Some sklearn-like functionality isn't available in Spark (e.g., target encoding)
+# MAGIC - Complex feature engineering often requires custom logic
+# MAGIC - Custom transformers can be saved and reused in production pipelines
 
 # COMMAND ----------
 
@@ -218,23 +229,36 @@ def get_wine_data_model_pipeline() -> Pipeline:
 
 # COMMAND ----------
 
+# Train and evaluate the pipeline
 import mlflow
 mlflow.end_run()
+
+# Create and fit the pipeline
 pipeline = get_wine_data_model_pipeline()
 pipeline_model = pipeline.fit(train)
+
+# Make predictions on test set
 predictions = pipeline_model.transform(test)
-display(predictions)
+
+# Display sample predictions
+display(predictions.select("alcohol", "prediction", "features").limit(5))
 
 # COMMAND ----------
 
-pipeline_model.write().overwrite().save("model_file")
+# Save the trained pipeline model
+model_path = "wine_quality_pipeline"
+pipeline_model.write().overwrite().save(model_path)
+print(f"Model saved to: {model_path}")
 
 
 # COMMAND ----------
 
+# MLflow tracking setup
 import mlflow
 import mlflow.spark
 from pyspark.ml.evaluation import RegressionEvaluator
+
+# Configure MLflow tracking
 mlflow.set_tracking_uri('databricks')
 # Example: Fit and save the pipeline using MLFlow
 with mlflow.start_run(run_name='Linear Regression Wine') as run:
