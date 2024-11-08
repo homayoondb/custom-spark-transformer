@@ -1,13 +1,20 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## Databricks SparkML Quickstart: Model Training
-# MAGIC This notebook focuses on creating custom transformers in a spark pipeline.
+# MAGIC # Custom Spark Transformers: From Simple to Advanced
+# MAGIC 
+# MAGIC This tutorial demonstrates how to create custom transformers in Spark ML pipelines. We'll explore three levels of complexity:
+# MAGIC 
+# MAGIC 1. **Basic Transformer**: A simple missing value imputer
+# MAGIC 2. **Intermediate Transformer**: A feature combiner that adds columns
+# MAGIC 3. **Advanced Transformer**: A target encoder that requires both fit and transform steps
+# MAGIC 
+# MAGIC We'll use a wine quality dataset to predict alcohol content, showing how custom transformers can enhance your ML pipeline.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Libraries
-# MAGIC Import necessary libraries preinstalled on Databricks Runtime for Machine Learning.
+# MAGIC ## Setup
+# MAGIC First, let's import our dependencies and load the wine quality dataset.
 
 # COMMAND ----------
 
@@ -95,9 +102,14 @@ from pyspark.ml.feature import StringIndexer
 # Custom Transformer 1: CustomImputer
 class CustomImputer(TransformerBaseClass):
     """
-    A custom Transformer that imputes missing values in a DataFrame.
-    - Fills categorical columns with 'none'
-    - Fills numeric columns with -99    """
+    Example 1: Basic Transformer
+    
+    A simple custom transformer that handles missing values:
+    - Replaces nulls in string columns with 'none'
+    - Replaces nulls in numeric columns with -99
+    
+    This demonstrates the basics of custom transformation without fitting.
+    """
     @keyword_only
     def __init__(self):
         super().__init__()
@@ -114,6 +126,12 @@ class CustomImputer(TransformerBaseClass):
 
 # Custom Transformer 2: CustomAdder    
 class CustomAdder(TransformerBaseClass):
+    """
+    Example 2: Intermediate Transformer
+    
+    Combines multiple numeric columns through addition.
+    Shows how to work with multiple input columns and create derived features.
+    """
     @keyword_only
     def __init__(self, inputCols=None, outputCol=None):
         super().__init__()
@@ -135,6 +153,12 @@ class TargetEncoderModel(TransformerBaseClass):
         return df.drop("mean")
 
 class TargetEncoder(EstimatorBaseClass):
+    """
+    Example 3: Advanced Transformer
+    
+    A target encoder that learns mean statistics during fit() and applies them during transform().
+    Demonstrates the full estimator-transformer pattern for stateful transformations.
+    """
     @keyword_only
     def __init__(self, inputCol=None, targetCol="y", outputCol=None):
         super().__init__()
@@ -148,7 +172,14 @@ class TargetEncoder(EstimatorBaseClass):
 # COMMAND ----------
 
 def get_wine_data_model_pipeline() -> Pipeline:
-
+    """
+    Builds an end-to-end pipeline combining our custom transformers:
+    1. Encodes the wine color
+    2. Combines acidity features
+    3. Applies target encoding to quality
+    4. Assembles features for the final XGBoost model
+    """
+    # Encode categorical color feature
     color_encoder = StringIndexer(inputCol="color", outputCol="indexed_color")
     
     addition_transformer = CustomAdder(inputCols=['fixed acidity',
