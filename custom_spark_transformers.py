@@ -2,13 +2,19 @@
 # MAGIC %md
 # MAGIC # Custom Spark Transformers: From Simple to Advanced
 # MAGIC 
-# MAGIC This tutorial demonstrates how to create custom transformers in Spark ML pipelines. We'll explore three levels of complexity:
+# MAGIC This tutorial demonstrates how to create custom transformers in Spark ML pipelines and save complete fitted pipelines for production use. We'll explore:
 # MAGIC 
 # MAGIC 1. **Basic Transformer**: A simple missing value imputer
 # MAGIC 2. **Intermediate Transformer**: A feature combiner that adds columns
 # MAGIC 3. **Advanced Transformer**: A target encoder that requires both fit and transform steps
 # MAGIC 
-# MAGIC We'll use a wine quality dataset to predict alcohol content, showing how custom transformers can enhance your ML pipeline.
+# MAGIC Key learning objectives:
+# MAGIC - Building custom transformers with increasing complexity
+# MAGIC - Creating end-to-end ML pipelines with custom transformations
+# MAGIC - Saving fitted pipelines for production deployment
+# MAGIC - Using MLflow to track and version your models
+# MAGIC 
+# MAGIC We'll use a wine quality dataset to predict alcohol content, showing how custom transformers can enhance your ML pipeline and be deployed to production.
 
 # COMMAND ----------
 
