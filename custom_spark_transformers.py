@@ -18,7 +18,7 @@
 import pandas as pd
 import pyspark.sql.functions as F
 from pyspark.ml import Pipeline
-from pyspark.ml.feature import VectorAssembler, StandardScaler, Imputer, StringIndexer
+from pyspark.ml.feature import VectorAssembler, StringIndexer
 from sparkml_base_classes import TransformerBaseClass, EstimatorBaseClass
 from xgboost.spark import SparkXGBRegressor
 
@@ -33,11 +33,7 @@ from xgboost.spark import SparkXGBRegressor
 # COMMAND ----------
 
 import pandas as pd
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
-
-# Initialize Spark session
-spark = SparkSession.builder.appName("WineQuality").getOrCreate()
 
 # URLs for the datasets
 red_wine_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
@@ -95,7 +91,6 @@ from pyspark import keyword_only
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.ml.feature import StringIndexer
-from pyspark.sql.types import StringType
 
 # Custom Transformer 1: CustomImputer
 class CustomImputer(TransformerBaseClass):
@@ -154,7 +149,14 @@ class TargetEncoder(EstimatorBaseClass):
 
 def get_wine_data_model_pipeline() -> Pipeline:
 
-    # Assembling features, make sure you do not include the target column as feature column. This one is later utilised as labelCol parameter in the ML model
+    color_encoder = StringIndexer(inputCol="color", outputCol="indexed_color")
+    
+    addition_transformer = CustomAdder(inputCols=['fixed acidity',
+                    'volatile acidity'], outputCol='total acidity')
+
+    quality_target_encoder = TargetEncoder(inputCol='quality', targetCol='alcohol',outputCol='encoded_quality')
+
+        # Assembling features, make sure you do not include the target column as feature column. This one is later utilised as labelCol parameter in the ML model
     feature_cols = [#'quality',
                     'fixed acidity',
                     'volatile acidity',
@@ -171,14 +173,7 @@ def get_wine_data_model_pipeline() -> Pipeline:
                     'indexed_color',
                     'total acidity',
                     'encoded_quality']
-
-    color_encoder = StringIndexer(inputCol="color", outputCol="indexed_color")
     
-    addition_transformer = CustomAdder(inputCols=['fixed acidity',
-                    'volatile acidity'], outputCol='total acidity')
-
-    quality_target_encoder = TargetEncoder(inputCol='quality', targetCol='alcohol',outputCol='encoded_quality')
-
     vector_assembler = VectorAssembler(
         inputCols=feature_cols, outputCol="features")
 
@@ -227,7 +222,7 @@ with mlflow.start_run(run_name='Linear Regression Wine') as run:
     rmse = evaluator.evaluate(predictions, {evaluator.metricName: "rmse"})
 
     # Log model metrics
-    mlflow.log_metrics("root_mean_squared_error", rmse)
+    mlflow.log_metric("root_mean_squared_error", rmse)
 
     # Log the model
     mlflow.spark.log_model(
