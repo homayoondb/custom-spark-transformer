@@ -11,16 +11,17 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install sparkml_base_classes mlflow
+# MAGIC %pip install sparkml_base_classes mlflow xgboost
 
 # COMMAND ----------
-# test
+
 import pandas as pd
 import pyspark.sql.functions as F
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import VectorAssembler, StandardScaler, Imputer, StringIndexer
 from sparkml_base_classes import TransformerBaseClass, EstimatorBaseClass
-from pyspark.ml.regression import GBTRegressor
+from xgboost.spark import SparkXGBRegressor
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -32,17 +33,36 @@ from pyspark.ml.regression import GBTRegressor
 # COMMAND ----------
 
 import pandas as pd
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
-df = spark.read.table("samples.nyctaxi.trips")
-print('taxi',df.count())
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("WineQuality").getOrCreate()
+
+# URLs for the datasets
+red_wine_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
+white_wine_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
+
+# Read the CSV files directly into pandas DataFrames
+red_wine_pd = pd.read_csv(red_wine_url, sep=';')
+white_wine_pd = pd.read_csv(white_wine_url, sep=';')
+
+# Convert pandas DataFrames to Spark DataFrames
+red_wine = spark.createDataFrame(red_wine_pd)
+white_wine = spark.createDataFrame(white_wine_pd)
+
+# Add a 'color' column to each DataFrame
+red_wine = red_wine.withColumn("color", lit("red"))
+white_wine = white_wine.withColumn("color", lit("white"))
+
 # Concatenate the dataframes
-data_df = spark.read.table("samples.wine_quality.wine")
-print('wine',data_df.count())
+data_df = white_wine.union(red_wine)
 
 # Make the quality into categories
 data_df = data_df.withColumn("quality", F.when(data_df["quality"] > 7, "High").otherwise("Low"))
 
 display(data_df)
+
 
 # COMMAND ----------
 
@@ -163,7 +183,7 @@ def get_wine_data_model_pipeline() -> Pipeline:
         inputCols=feature_cols, outputCol="features")
 
     # Machine Learning model
-    model = GBTRegressor(features_col="features", label_col="alcohol")
+    model = SparkXGBRegressor(features_col="features", label_col="alcohol")
 
     stages=[color_encoder, addition_transformer, quality_target_encoder, vector_assembler, model]
     # Pipeline
@@ -215,4 +235,5 @@ with mlflow.start_run(run_name='Linear Regression Wine') as run:
 
 
 # COMMAND ----------
+
 
